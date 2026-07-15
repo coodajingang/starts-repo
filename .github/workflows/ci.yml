@@ -1,0 +1,233 @@
+# CloudPlayer CI/CD
+# 编译、测试、打包
+
+name: CloudPlayer CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_configuration:
+        description: 'Build configuration'
+        type: choice
+        options:
+          - Debug
+          - Release
+        default: Debug
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
+  SCHEME_IOS: CloudPlayer (iOS)
+  SCHEME_MACOS: CloudPlayer (macOS)
+  SCHEME_TVOS: CloudPlayer (tvOS)
+
+jobs:
+  # ========================================
+  # 代码质量检查
+  # ========================================
+  lint:
+    name: Lint and Format Check
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: SwiftLint
+        run: |
+          if command -v swiftlint &> /dev/null; then
+            swiftlint --strict
+          else
+            echo "SwiftLint not installed, skipping"
+          fi
+
+      - name: Check Swift Format
+        run: |
+          if command -v swift-format &> /dev/null; then
+            swift-format lint --recursive Sources/ Tests/
+          else
+            echo "swift-format not installed, skipping"
+          fi
+
+  # ========================================
+  # iOS 编译
+  # ========================================
+  build-ios:
+    name: Build iOS
+    runs-on: macos-14
+    needs: [lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Resolve Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -scheme "$SCHEME_IOS"
+
+      - name: Build iOS
+        run: |
+          xcodebuild build \
+            -scheme "$SCHEME_IOS" \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=iPhone 15 Pro,OS=17.2" \
+            -configuration ${{ github.event.inputs.build_configuration || 'Debug' }} \
+            -resultBundlePath build/ios-build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build
+          path: build/
+
+  # ========================================
+  # macOS 编译
+  # ========================================
+  build-macos:
+    name: Build macOS
+    runs-on: macos-14
+    needs: [lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Resolve Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -scheme "$SCHEME_MACOS"
+
+      - name: Build macOS
+        run: |
+          xcodebuild build \
+            -scheme "$SCHEME_MACOS" \
+            -sdk macosx \
+            -destination "platform=macOS,arch=arm64" \
+            -configuration ${{ github.event.inputs.build_configuration || 'Debug' }} \
+            -resultBundlePath build/macos-build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-build
+          path: build/
+
+  # ========================================
+  # tvOS 编译
+  # ========================================
+  build-tvos:
+    name: Build tvOS
+    runs-on: macos-14
+    needs: [lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Resolve Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -scheme "$SCHEME_TVOS"
+
+      - name: Build tvOS
+        run: |
+          xcodebuild build \
+            -scheme "$SCHEME_TVOS" \
+            -sdk appletvsimulator \
+            -destination "platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=17.2" \
+            -configuration ${{ github.event.inputs.build_configuration || 'Debug' }} \
+            -resultBundlePath build/tvos-build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tvos-build
+          path: build/
+
+  # ========================================
+  # 单元测试
+  # ========================================
+  test:
+    name: Unit Tests
+    runs-on: macos-14
+    needs: [lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Run Tests (iOS)
+        run: |
+          xcodebuild test \
+            -scheme "$SCHEME_IOS" \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=iPhone 15 Pro,OS=17.2" \
+            -configuration Debug \
+            -testPlan CloudPlayerTests \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/
+
+  # ========================================
+  # 发布（仅主分支）
+  # ========================================
+  release:
+    name: Release Build
+    runs-on: macos-14
+    needs: [build-ios, build-macos, build-tvos, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Build Release (iOS)
+        run: |
+          xcodebuild archive \
+            -scheme "$SCHEME_IOS" \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/CloudPlayer-iOS.xcarchive \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build Release (macOS)
+        run: |
+          xcodebuild archive \
+            -scheme "$SCHEME_MACOS" \
+            -sdk macosx \
+            -configuration Release \
+            -archivePath build/CloudPlayer-macOS.xcarchive \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-builds
+          path: build/*.xcarchive
