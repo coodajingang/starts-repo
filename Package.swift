@@ -1,6 +1,5 @@
 // swift-tools-version: 5.9
 import PackageDescription
-import CompilerPluginSupport
 
 let package = Package(
     name: "CloudPlayer",
@@ -18,19 +17,13 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/SwiftGen/SwiftGen", from: "6.6.0"),
-        .package(url: "https://github.com/SwiftyJSON/SwiftyJSON", from: "5.0.0"),
         .package(url: "https://github.com/kishikawakatsumi/KeychainAccess", from: "4.2.0"),
     ],
     targets: [
         .target(
             name: "CloudPlayer",
             dependencies: [
-                "SwiftyJSON",
                 "KeychainAccess",
-            ],
-            resources: [
-                .process("Resources")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
