@@ -117,23 +117,12 @@ public actor AlistService {
     /// 搜索文件
     public func searchFiles(keyword: String, path: String? = nil, page: Int = 1, perPage: Int = 50) async throws -> [MediaFile] {
         let url = "\(baseURL)/api/fs/search"
-        var parameters: [String: Any] = [
+        let parameters: [String: Any] = [
             "parent": path ?? "/",
             "name": keyword,
             "page": page,
             "per_page": perPage
         ]
-
-        struct SearchResponse: Codable, Sendable {
-            let code: Int
-            let message: String
-            let data: SearchData?
-        }
-
-        struct SearchData: Codable, Sendable {
-            let content: [AlistFileItem]?
-            let total: Int?
-        }
 
         let response: SearchResponse = try await postRequest(url: url, body: parameters)
 
@@ -143,6 +132,31 @@ public actor AlistService {
 
         let parentPath = path ?? ""
         return response.data?.content?.map { $0.toMediaFile(parentPath: parentPath) } ?? []
+    }
+
+    // MARK: - Search Response Models
+
+    private struct SearchResponse: Codable, Sendable {
+        let code: Int
+        let message: String
+        let data: SearchData?
+    }
+
+    private struct SearchData: Codable, Sendable {
+        let content: [AlistFileItem]?
+        let total: Int?
+    }
+
+    private struct SearchRequest: Codable, Sendable {
+        let parent: String
+        let name: String
+        let page: Int
+        let perPage: Int
+
+        enum CodingKeys: String, CodingKey {
+            case parent, name, page
+            case perPage = "per_page"
+        }
     }
 
     /// 获取服务器信息
@@ -212,6 +226,29 @@ public actor AlistService {
 
         let encoded = try JSONEncoder().encode(AnyEncodable(body))
         request.httpBody = encoded
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response)
+
+        return try decoder.decode(T.self, from: data)
+    }
+
+    private func postRequest<T: Decodable>(url: String, body: [String: Any]) async throws -> T {
+        guard let url = URL(string: url) else {
+            throw AlistError.urlInvalid
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("CloudPlayer/1.0", forHTTPHeaderField: "User-Agent")
+        if !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "Authorization")
+        }
+
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = jsonData
 
         let (data, response) = try await session.data(for: request)
         try validateResponse(response)

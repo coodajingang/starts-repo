@@ -198,9 +198,9 @@ public actor SubtitleLoader {
         var inBrackets = false
 
         for char in content {
-            if char == '{' { inBrackets = true }
-            if char == '}' { inBrackets = false; continue }
-            if char == ',' && !inBrackets {
+            if char == "{" { inBrackets = true }
+            if char == "}" { inBrackets = false; continue }
+            if char == "," && !inBrackets {
                 parts.append(current.trimmingCharacters(in: .whitespaces))
                 current = ""
             } else {

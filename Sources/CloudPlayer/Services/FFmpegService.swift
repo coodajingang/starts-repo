@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import CoreMedia
 import CoreVideo
+import VideoToolbox
 #if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
 #endif

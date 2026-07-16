@@ -273,13 +273,8 @@ public actor GCDWebServerService {
     }
 }
 
-// MARK: - Proxy Status
-
-public struct ProxyStatus: Sendable {
-    public let isRunning: Bool
-    public let port: Int
-    public let activeMappings: Int
-}
+// 移除 ProxyStatus 结构体，使用 ProxyService.swift 中的定义
+// MARK: - Proxy Status (移除了重复定义，使用 ProxyService 中的 ProxyStatus)
 
 // MARK: - GCDWebServer Stub (模拟实现)
 

@@ -44,11 +44,13 @@ public struct CustomVideoPlayerView: UIViewRepresentable {
         tapGesture.require(toFail: doubleTapGesture)
         view.addGestureRecognizer(doubleTapGesture)
 
+        #if !os(tvOS)
         let pinchGesture = UIPinchGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.handlePinch(_:))
         )
         view.addGestureRecognizer(pinchGesture)
+        #endif
 
         return view
     }
@@ -82,6 +84,7 @@ public struct CustomVideoPlayerView: UIViewRepresentable {
             NotificationCenter.default.post(name: .videoPlayerDidDoubleTap, object: nil)
         }
 
+        #if !os(tvOS)
         @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
             guard gesture.state == .changed else { return }
             NotificationCenter.default.post(
@@ -90,6 +93,7 @@ public struct CustomVideoPlayerView: UIViewRepresentable {
                 userInfo: ["scale": gesture.scale]
             )
         }
+        #endif
     }
 }
 
@@ -112,7 +116,7 @@ public class VideoPlayerUIView: UIView {
         didSet { subtitleLabel.text = subtitleText }
     }
 
-    weak var delegate: Coordinator?
+    weak var delegate: AnyObject?
 
     private var playerLayer: AVPlayerLayer {
         layer as! AVPlayerLayer
