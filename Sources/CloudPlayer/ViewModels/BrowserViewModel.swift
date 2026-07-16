@@ -190,7 +190,7 @@ public final class BrowserViewModel: Sendable {
         case .webdav:
             return try await webdavService.listFiles(path: path)
         case .local:
-            return try await localFileService.listFiles(at: path.isEmpty ? "/" : path)
+            return try let roots = try await localFileService.listFiles(at: path.isEmpty ? "/" : path)
         }
     }
 

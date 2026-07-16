@@ -263,7 +263,7 @@ public final class SwiftDataManager: @unchecked Sendable {
     public func fetchAllConnections() -> [DriveConnection] {
         guard let context = context else { return [] }
         let descriptor = FetchDescriptor<SwiftDataConnection>(
-            sortBy: [SortDescriptor(\.lastAccessedAt, order: .reverse)]
+            sort: [SortDescriptor(\.lastAccessedAt, order: .reverse)]
         )
         return (try? context.fetch(descriptor))?.map { $0.toDriveConnection() } ?? []
     }
@@ -331,7 +331,7 @@ public final class SwiftDataManager: @unchecked Sendable {
     public func fetchAllPlaybackRecords() -> [PlaybackRecord] {
         guard let context = context else { return [] }
         let descriptor = FetchDescriptor<SwiftDataPlaybackRecord>(
-            sortBy: [SortDescriptor(\.lastPlayedAt, order: .reverse)]
+            sort: [SortDescriptor(\.lastPlayedAt, order: .reverse)]
         )
         return (try? context.fetch(descriptor))?.map { $0.toPlaybackRecord() } ?? []
     }
@@ -341,7 +341,7 @@ public final class SwiftDataManager: @unchecked Sendable {
         guard let context = context else { return [] }
         let descriptor = FetchDescriptor<SwiftDataPlaybackRecord>(
             predicate: #Predicate { !$0.isFinished && $0.position > 0 },
-            sortBy: [SortDescriptor(\.lastPlayedAt, order: .reverse)]
+            sort: [SortDescriptor(\.lastPlayedAt, order: .reverse)]
         )
         return (try? context.fetch(descriptor))?.map { $0.toPlaybackRecord() } ?? []
     }
@@ -418,7 +418,7 @@ public final class SwiftDataManager: @unchecked Sendable {
     public func fetchAllFavorites() -> [SwiftDataFavorite] {
         guard let context = context else { return [] }
         let descriptor = FetchDescriptor<SwiftDataFavorite>(
-            sortBy: [SortDescriptor(\.addedAt, order: .reverse)]
+            sort: [SortDescriptor(\.addedAt, order: .reverse)]
         )
         return (try? context.fetch(descriptor)) ?? []
     }
@@ -443,7 +443,7 @@ public final class SwiftDataManager: @unchecked Sendable {
         if let count = try? context.fetchCount(countDescriptor), count >= 500 {
             // 删除最旧的记录
             let deleteDescriptor = FetchDescriptor<SwiftDataPlaybackHistory>(
-                sortBy: [SortDescriptor(\.playedAt, order: .forward)]
+                sort: [SortDescriptor(\.playedAt, order: .forward)]
             )
             if let oldest = try? context.fetch(deleteDescriptor).first {
                 context.delete(oldest)
@@ -467,7 +467,7 @@ public final class SwiftDataManager: @unchecked Sendable {
     public func fetchPlaybackHistory(limit: Int = 100) -> [SwiftDataPlaybackHistory] {
         guard let context = context else { return [] }
         var descriptor = FetchDescriptor<SwiftDataPlaybackHistory>(
-            sortBy: [SortDescriptor(\.playedAt, order: .reverse)]
+            sort: [SortDescriptor(\.playedAt, order: .reverse)]
         )
         descriptor.fetchLimit = limit
         return (try? context.fetch(descriptor)) ?? []
@@ -605,11 +605,11 @@ public struct SwiftDataQuery<T: PersistentModel>: DynamicProperty {
         results
     }
 
-    public init(sortBy: [SortDescriptor<T>] = []) {
-        _results = Query(sortBy: sortBy)
+    public init(sort: [SortDescriptor<T>] = []) {
+        _results = Query(sort: sortBy)
     }
 
-    public init(filter: Predicate<T>?, sortBy: [SortDescriptor<T>] = []) {
+    public init(filter: Predicate<T>?, sort: [SortDescriptor<T>] = []) {
         _results = Query(filter: filter, sort: sortBy)
     }
 }
