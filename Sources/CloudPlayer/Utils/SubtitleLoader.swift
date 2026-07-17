@@ -77,6 +77,9 @@ public actor SubtitleLoader {
             return parseVTT(content)
         case .sub:
             return parseSubRip(content)
+        case .pgs:
+            // PGS 是图形字幕格式，暂不支持解析
+            return []
         case .unknown:
             // 尝试自动检测
             if content.contains("-->") {

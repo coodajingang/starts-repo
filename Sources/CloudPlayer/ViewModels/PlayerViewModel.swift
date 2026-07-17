@@ -49,12 +49,13 @@ public final class PlayerViewModel: Sendable {
     public func play(file: MediaFile, source: DriveConnection) {
         currentMediaFile = file
         currentSource = source
-
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             do {
-                let playbackInfo = try await browserViewModel.getPlaybackURL(for: file)
-
+                let playbackInfo = try await self.browserViewModel.getPlaybackURL(for: file)
                 // 检查是否有保存的播放进度
+                let savedPosition = self.loadSavedPosition(for: file, source: source)
+                self.isPlayerPresented = true
                 let savedPosition = loadSavedPosition(for: file, source: source)
 
                 isPlayerPresented = true
@@ -66,7 +67,7 @@ public final class PlayerViewModel: Sendable {
                         targetURL: playbackInfo.url,
                         headers: playbackInfo.headers ?? [:]
                     )
-                    await mediaPlayerService.play(url: proxyURL, title: file.name)
+                    await mediaPlayerService.play(url: proxyURL, headers: nil, title: file.name)
                 } else {
                     await mediaPlayerService.play(
                         url: playbackInfo.url,

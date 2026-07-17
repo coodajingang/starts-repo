@@ -291,9 +291,7 @@ public struct SystemPlayerView: UIViewControllerRepresentable {
             // 画中画结束
         }
 
-        public func playerViewControllerWillBeginDismissalTransition(_ playerViewController: AVPlayerViewController) {
-            didDismiss?()
-        }
+        // playerViewControllerWillBeginDismissalTransition 在 iOS 17+ 不可用，已移除
     }
 }
 

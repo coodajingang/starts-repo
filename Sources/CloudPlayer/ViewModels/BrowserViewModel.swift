@@ -142,19 +142,19 @@ public final class BrowserViewModel: Sendable {
     public func navigateToDirectory(_ file: MediaFile) async {
         guard file.isDirectory else { return }
         state.navigateTo(file.path)
-        await loadCurrentDirectory()
+        try? await loadCurrentDirectory()
     }
 
     /// 返回上级目录
     public func navigateUp() async {
         state.navigateUp()
-        await loadCurrentDirectory()
+        try? await loadCurrentDirectory()
     }
 
     /// 导航到指定路径
     public func navigateToPath(_ path: String) async {
         state.navigateTo(path)
-        await loadCurrentDirectory()
+        try? await loadCurrentDirectory()
     }
 
     // MARK: - File Loading
@@ -177,8 +177,8 @@ public final class BrowserViewModel: Sendable {
 
     /// 刷新当前目录
     public func refresh() async {
-        await loadCurrentDirectory()
-    }
+        try? await loadCurrentDirectory()
+            }
 
     /// 根据连接类型获取文件列表
     private func fetchFiles(path: String) async throws -> [MediaFile] {
